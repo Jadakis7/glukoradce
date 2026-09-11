@@ -57,7 +57,7 @@ docker compose up -d --build
 
 echo "-- automatická aktualizace z GitHubu každých 5 minut"
 chmod +x deploy/update.sh
-( crontab -l 2>/dev/null | grep -v glukoradce/deploy/update.sh ; echo "*/5 * * * * $DIR/deploy/update.sh >> /var/log/glukoradce-update.log 2>&1" ) | crontab -
+{ crontab -l 2>/dev/null | grep -v glukoradce/deploy/update.sh || true; echo "*/5 * * * * $DIR/deploy/update.sh >> /var/log/glukoradce-update.log 2>&1"; } | crontab - || true
 
 echo
 echo "================================================================"
