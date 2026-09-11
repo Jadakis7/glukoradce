@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Glukorádce">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/icon.svg">
+<title>Glukorádce</title>
+<style>
+:root{
+  color-scheme: light dark;
+  --bg:#f6f6f4; --card:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --ink3:#8a8985; --line:#e4e3df;
+  --accent:#2a78d6; --accent-ink:#ffffff; --orange:#eb6834; --aqua:#1baf7a; --red:#e34948; --yellow:#eda100;
+  --band:rgba(27,175,122,.12); --grid:#ececea;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141413; --card:#1f1f1e; --ink:#f4f4f1; --ink2:#c3c2b7; --ink3:#8a8985; --line:#33332f;
+         --accent:#3987e5; --orange:#d95926; --aqua:#199e70; --red:#e66767; --yellow:#c98500;
+         --band:rgba(25,158,112,.18); --grid:#2a2a28; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+main{max-width:640px;margin:0 auto;padding:12px 16px}
+h1{font-size:20px;margin:8px 0 12px}
+h2{font-size:15px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 8px;font-weight:600}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}
+.muted{color:var(--ink3);font-size:13px}
+.big{font-size:56px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.arrow{font-size:34px;margin-left:6px}
+.stat{font-size:13px;color:var(--ink2)}
+.stat b{display:block;font-size:20px;color:var(--ink)}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--accent);color:var(--accent-ink);font-weight:600;cursor:pointer}
+button.sec{background:transparent;color:var(--accent);border:1px solid var(--line)}
+button.small{padding:8px 12px;font-size:14px;border-radius:10px}
+button:disabled{opacity:.5}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:6px 10px;font-size:13px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+input,select,textarea{font:inherit;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+label{display:block;font-size:13px;color:var(--ink2);margin:10px 0 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.warn{background:rgba(237,161,0,.14);border:1px solid var(--yellow);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:14px}
+.danger{background:rgba(227,73,72,.12);border:1px solid var(--red)}
+.ok{background:rgba(27,175,122,.12);border:1px solid var(--aqua)}
+.dose{display:flex;gap:10px}
+.dose .card{flex:1;text-align:center;margin:0}
+.dose .u{font-size:40px;font-weight:700;line-height:1.1}
+.dose .l{font-size:13px;color:var(--ink2)}
+ol.steps{padding-left:20px;margin:8px 0;font-size:14px;color:var(--ink2)}
+ol.steps li{margin:4px 0}
+.list .item{padding:12px 4px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.list .item:first-child{border-top:0}
+.list .item .t{flex:1}
+.list .item .n{font-weight:600}
+.pill{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav a{flex:1;text-align:center;padding:10px 0 8px;color:var(--ink3);text-decoration:none;font-size:12px}
+nav a.on{color:var(--accent);font-weight:600}
+nav a span{display:block;font-size:22px;line-height:1.1}
+.page{display:none}.page.on{display:block}
+svg.chart{width:100%;height:230px;display:block;touch-action:none}
+.tip{position:absolute;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap}
+.chartwrap{position:relative}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:44px;height:44px;padding:0;font-size:22px;border-radius:12px}
+.stepper input{width:80px;text-align:center;font-size:20px;font-weight:600}
+.verdict{font-size:14px;margin:4px 0}
+details summary{cursor:pointer;color:var(--accent);font-size:14px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-size:12px;color:var(--ink2);margin-top:8px}
+.metrics b{display:block;color:var(--ink);font-size:15px}
+.toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:9;opacity:0;transition:opacity .2s}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<main>
+  <!-- ===================== TEĎ ===================== -->
+  <section id="page-now" class="page on">
+    <h1>Glukorádce</h1>
+    <div id="demoBanner" class="warn" style="display:none">Demo režim – simulovaná data. Přihlášení k Dexcomu nastavíte v Nastavení.</div>
+    <div id="errBanner" class="warn danger" style="display:none"></div>
+    <div class="card">
+      <div class="row">
+        <div><span id="bgNow" class="big">–</span><span id="bgArrow" class="arrow"></span></div>
+        <div class="grow"></div>
+        <div class="stat">Aktivní inzulín<b id="iobNow">–</b></div>
+      </div>
+      <div class="muted" id="bgAge">načítám…</div>
+    </div>
+    <div id="pendingLate"></div>
+    <div class="card">
+      <div class="row" style="margin-bottom:6px;flex-wrap:nowrap">
+        <div class="grow"><strong>Posledních <span id="chartHours">6</span> h</strong></div>
+        <div class="seg">
+          <button class="sec small" onclick="setHours(3)">3</button><button class="sec small" onclick="setHours(6)">6</button><button class="sec small" onclick="setHours(12)">12</button><button class="sec small" onclick="setHours(24)">24</button>
+        </div>
+      </div>
+      <div class="chartwrap"><svg class="chart" id="chart"></svg><div class="tip" id="tip" style="display:none"></div></div>
+      <div class="muted">● glykémie &nbsp; ▲ bolus &nbsp; ◆ jídlo &nbsp; zelené pásmo = cíl (<span id="rangeTxt"></span>)</div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div class="grow"><strong>Zapsat bolus mimo jídlo</strong><div class="muted">korekce, kterou jste dal ručně na pumpě</div></div>
+        <input id="manualUnits" type="number" step="0.1" inputmode="decimal" placeholder="j." style="width:90px">
+        <button class="small" onclick="addManualBolus()">Zapsat</button>
+      </div>
+    </div>
+    <div class="muted" id="syncInfo"></div>
+  </section>
+
+  <!-- ===================== JÍDLO ===================== -->
+  <section id="page-meal" class="page">
+    <h1>Jídlo</h1>
+    <div id="mealPick">
+      <input id="mealSearch" placeholder="Hledat jídlo…" oninput="renderMeals()">
+      <div class="card list" id="mealList" style="margin-top:10px"></div>
+      <button class="sec" onclick="showNewMeal()">+ Nové jídlo</button>
+      <div class="card" id="newMeal" style="display:none;margin-top:10px">
+        <label>Název</label><input id="nmName" placeholder="např. Pizza salámová">
+        <div class="grid3">
+          <div><label>Sacharidy (g)</label><input id="nmCarbs" type="number" inputmode="decimal"></div>
+          <div><label>Tuky (g)</label><input id="nmFat" type="number" inputmode="decimal"></div>
+          <div><label>Bílkoviny (g)</label><input id="nmProt" type="number" inputmode="decimal"></div>
+        </div>
+        <label>Na jednu porci = </label><input id="nmLabel" placeholder="porce / pizza / talíř">
+        <div class="row" style="margin-top:12px"><button onclick="saveNewMeal()">Uložit jídlo</button><button class="sec" onclick="document.getElementById('newMeal').style.display='none'">Zrušit</button></div>
+      </div>
+    </div>
+
+    <div id="mealRec" style="display:none">
+      <button class="sec small" onclick="backToMeals()">‹ Jiné jídlo</button>
+      <div class="card" style="margin-top:10px">
+        <div class="row">
+          <div class="grow"><strong id="recName"></strong><div class="muted" id="recMacros"></div></div>
+          <div class="stepper">
+            <button class="sec" onclick="changePortions(-0.25)">−</button>
+            <input id="portions" type="number" step="0.25" inputmode="decimal" value="1" onchange="recommend()">
+            <button class="sec" onclick="changePortions(0.25)">+</button>
+          </div>
+        </div>
+        <label>Aktuální glykémie (mmol/l) – nechte prázdné pro hodnotu z Dexcomu</label>
+        <input id="bgManual" type="number" step="0.1" inputmode="decimal" placeholder="z Dexcomu" onchange="recommend()">
+      </div>
+      <div id="recWarn"></div>
+      <div class="dose">
+        <div class="card"><div class="l">Teď</div><div class="u" id="recNow">–</div><div class="l">jednotek</div></div>
+        <div class="card"><div class="l" id="recLateLabel">Za 120 min</div><div class="u" id="recLate">–</div><div class="l">jednotek</div></div>
+      </div>
+      <div class="card">
+        <details><summary>Jak jsem to spočítal</summary><ol class="steps" id="recSteps"></ol></details>
+        <div id="recLearned" class="muted"></div>
+      </div>
+      <div class="card" id="recHistoryCard">
+        <strong>Minule u tohoto jídla</strong>
+        <div id="recHistory" class="list"></div>
+      </div>
+      <div class="card">
+        <label>Kolik jste si teď opravdu dal (j.)</label>
+        <div class="row"><input id="givenNow" type="number" step="0.1" inputmode="decimal" class="grow"><button onclick="logMeal()">Zapsat jídlo</button></div>
+        <div class="muted" style="margin-top:8px">Aplikace jen navrhuje. Dávku vždy zadáváte vy na pumpě; sem zapisujete, co jste skutečně dal, aby se z toho mohla učit.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== HISTORIE ===================== -->
+  <section id="page-hist" class="page">
+    <h1>Historie jídel</h1>
+    <div id="histList"></div>
+  </section>
+
+  <!-- ===================== NASTAVENÍ ===================== -->
+  <section id="page-set" class="page">
+    <h1>Nastavení</h1>
+    <div class="card">
+      <strong>Terapeutické parametry</strong>
+      <div class="muted">Vezměte je z pumpy (profil Control-IQ). Vždy konzultujte s diabetologem.</div>
+      <div class="grid2">
+        <div><label>ICR (g sacharidů / 1 j.)</label><input id="sIcr" type="number" step="0.1" inputmode="decimal"></div>
+        <div><label>ISF (mmol/l / 1 j.)</label><input id="sIsf" type="number" step="0.1" inputmode="decimal"></div>
+        <div><label>Cílová glykémie</label><input id="sTarget" type="number" step="0.1" inputmode="decimal"></div>
+        <div><label>Doba působení inzulínu (h)</label><input id="sDia" type="number" step="0.5" inputmode="decimal"></div>
+        <div><label>Hypo hranice</label><input id="sHypo" type="number" step="0.1" inputmode="decimal"></div>
+        <div><label>Horní hranice cíle</label><input id="sHigh" type="number" step="0.1" inputmode="decimal"></div>
+      </div>
+    </div>
+    <div class="card">
+      <strong>Tuky a bílkoviny (druhá dávka)</strong>
+      <div class="grid2">
+        <div><label>Krytí FPU na začátku (0–1)</label><input id="sFpu" type="number" step="0.05" inputmode="decimal"></div>
+        <div><label>Odstup druhé dávky (min)</label><input id="sDelay" type="number" step="5" inputmode="numeric"></div>
+        <div><label>Max. jedna dávka (j.)</label><input id="sMaxB" type="number" step="0.5" inputmode="decimal"></div>
+        <div><label>Max. korekce (j.)</label><input id="sMaxC" type="number" step="0.5" inputmode="decimal"></div>
+        <div><label>Max. krok učení (0,05–0,2)</label><input id="sStep" type="number" step="0.01" inputmode="decimal"></div>
+      </div>
+    </div>
+    <div class="card">
+      <strong>Dexcom Share</strong>
+      <div class="muted">Účet Dexcom (ne Follow). V aplikaci Dexcom G7 musí být zapnuté sdílení.</div>
+      <label>Uživatelské jméno / e-mail</label><input id="sDxUser" autocomplete="off">
+      <label>Heslo</label><input id="sDxPass" type="password" autocomplete="off">
+      <label>Region</label><select id="sDxRegion"><option value="ous">Evropa / mimo USA</option><option value="us">USA</option></select>
+    </div>
+    <div class="card">
+      <strong>Tandem Source (pumpa t:slim X2)</strong>
+      <div class="muted">Účet, kterým se přihlašujete do aplikace t:connect / webu Tandem Source. Bolusy i automatické korekce Control-IQ se pak stahují samy každých 5 min.</div>
+      <label>E-mail</label><input id="sTdUser" autocomplete="off">
+      <label>Heslo</label><input id="sTdPass" type="password" autocomplete="off">
+      <label>Region</label><select id="sTdRegion"><option value="EU">Evropa</option><option value="US">USA</option></select>
+      <div class="row" style="margin-top:12px"><button class="sec small" onclick="tandemProbe()">Otestovat připojení</button><span class="muted" id="tdStatus"></span></div>
+      <pre id="tdProbe" class="muted" style="white-space:pre-wrap;font-size:12px;display:none"></pre>
+    </div>
+    <div class="row"><button onclick="saveSettings()">Uložit nastavení</button><button class="sec" onclick="syncNow()">Stáhnout data teď</button></div>
+    <div class="card" style="margin-top:12px">
+      <strong>Import bolusů z pumpy (CSV z Tandem Source)</strong>
+      <div class="muted">Automatické korekce Control-IQ se započítají do aktivního inzulínu a do učení.</div>
+      <input id="csvFile" type="file" accept=".csv,text/csv" style="margin-top:8px">
+      <button class="small" style="margin-top:8px" onclick="importCsv()">Importovat</button>
+      <div class="muted" id="importInfo"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Server</strong>
+      <div class="muted">Po aktualizaci kódu se server restartuje sám. Tlačítko použijte, kdyby se něco zaseklo.</div>
+      <button class="sec small" style="margin-top:8px" onclick="restartServer()">Restartovat server</button>
+    </div>
+    <div class="muted">Glukorádce je osobní pomůcka, ne zdravotnický prostředek. Nikdy nedávkuje – rozhodujete vy. · <a href="/logout" style="color:var(--accent)">Odhlásit</a></div>
+  </section>
+</main>
+
+<nav>
+  <a href="#now" class="on" data-p="now"><span>◉</span>Teď</a>
+  <a href="#meal" data-p="meal"><span>🍽</span>Jídlo</a>
+  <a href="#hist" data-p="hist"><span>☰</span>Historie</a>
+  <a href="#set" data-p="set"><span>⚙</span>Nastavení</a>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const api = async (path, opt={}) => {
+  const r = await fetch('/api' + path, Object.assign({headers:{'Content-Type':'application/json'}}, opt));
+  if(r.status===401){ location.href='/login'; throw new Error('nepřihlášen'); }
+  const j = await r.json(); if(!r.ok) throw new Error(j.error||r.statusText); return j;
+};
+const fmt1 = v => v==null ? '–' : (Math.round(v*10)/10).toLocaleString('cs-CZ',{minimumFractionDigits:1,maximumFractionDigits:1});
+const hhmm = ts => new Date(ts*1000).toLocaleTimeString('cs-CZ',{hour:'2-digit',minute:'2-digit'});
+const dmy = ts => new Date(ts*1000).toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'});
+let toastT; function toast(m){ $('toast').textContent=m; $('toast').classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>$('toast').classList.remove('on'),2500); }
+
+// ---------- navigace ----------
+function show(p){ document.querySelectorAll('.page').forEach(e=>e.classList.toggle('on', e.id==='page-'+p));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on', a.dataset.p===p));
+  if(p==='now') refreshNow(); if(p==='meal') loadMeals(); if(p==='hist') loadHistory(); if(p==='set') loadSettings(); }
+window.addEventListener('hashchange', ()=>show(location.hash.slice(1)||'now'));
+
+// ---------- TEĎ ----------
+let hours = 6, status = null, chartData = null;
+function setHours(h){ hours=h; $('chartHours').textContent=h; loadChart(); }
+async function refreshNow(){
+  try{
+    status = await api('/status');
+    $('demoBanner').style.display = status.demo ? '' : 'none';
+    $('errBanner').style.display = status.last_error ? '' : 'none';
+    $('errBanner').textContent = status.last_error ? 'Dexcom: ' + status.last_error : '';
+    if(!status.demo && !status.dexcom_configured){ $('errBanner').style.display=''; $('errBanner').textContent='Zadejte přihlášení k Dexcom Share v Nastavení.'; }
+    const g = status.glucose;
+    $('bgNow').textContent = g ? fmt1(g.mmol) : '–';
+    $('bgNow').style.color = g ? (g.mmol < status.settings.hypo ? 'var(--red)' : g.mmol > status.settings.high ? 'var(--orange)' : 'var(--ink)') : 'var(--ink3)';
+    $('bgArrow').textContent = status.trend_arrow || '';
+    $('bgAge').textContent = g ? `před ${status.glucose_age_min} min · ${hhmm(g.ts)}` + (status.glucose_age_min>15?' · ⚠ stará hodnota':'') : 'zatím žádná data';
+    $('iobNow').textContent = fmt1(status.iob) + ' j.';
+    $('rangeTxt').textContent = `${fmt1(status.settings.hypo)}–${fmt1(status.settings.high)}`;
+    $('syncInfo').textContent = (status.last_sync ? 'Dexcom ' + hhmm(status.last_sync) : '') + (status.tandem_last_sync ? ' · Tandem ' + hhmm(status.tandem_last_sync) : '') + (status.tandem_error ? ' · ⚠ Tandem: ' + status.tandem_error : '');
+    renderPending(status.pending_late, status.now);
+    loadChart();
+  }catch(e){ $('bgAge').textContent = 'Server nedostupný: ' + e.message; }
+}
+function renderPending(list, now){
+  const el = $('pendingLate'); el.innerHTML='';
+  for(const p of list){
+    const late = p.minutes_left <= 0;
+    el.insertAdjacentHTML('beforeend', `<div class="warn ${late?'ok':''}"><strong>${p.meal}</strong>: druhá dávka <strong>${fmt1(p.units)} j.</strong>
+      ${late ? 'je na řadě teď' : 'za ' + p.minutes_left + ' min'} (${hhmm(p.due_ts)}).
+      <div class="row" style="margin-top:8px"><input type="number" step="0.1" inputmode="decimal" value="${p.units}" id="late_${p.event_id}" style="width:90px">
+      <button class="small" onclick="logLate(${p.event_id})">Zapsat podáno</button><button class="sec small" onclick="skipLate(${p.event_id})">Nepodám</button></div></div>`);
+  }
+}
+async function logLate(eid){ const u = parseFloat($('late_'+eid).value||0); await api(`/meal_events/${eid}/dose`,{method:'POST',body:JSON.stringify({given_late:u})}); toast('Zapsáno'); refreshNow(); }
+async function skipLate(eid){ await api(`/meal_events/${eid}/dose`,{method:'POST',body:JSON.stringify({given_late:0})}); refreshNow(); }
+async function addManualBolus(){ const u=parseFloat($('manualUnits').value); if(!(u>0)) return; await api('/boluses',{method:'POST',body:JSON.stringify({units:u,kind:'correction'})}); $('manualUnits').value=''; toast('Bolus zapsán'); refreshNow(); }
+
+// ---------- graf ----------
+async function loadChart(){ chartData = await api('/glucose?hours='+hours); drawChart(); }
+function drawChart(){
+  const svg = $('chart'); if(!chartData) return;
+  const W = svg.clientWidth || 360, H = 230, padL = 30, padR = 8, padT = 10, padB = 22;
+  const now = status ? status.now : Date.now()/1000, t0 = now - hours*3600;
+  const pts = chartData.points;
+  const ymax = Math.max(14, ...pts.map(p=>p.mmol)) + 1, ymin = 2;
+  const x = t => padL + (t - t0) / (hours*3600) * (W - padL - padR);
+  const y = v => padT + (ymax - v) / (ymax - ymin) * (H - padT - padB);
+  const hypo = status?status.settings.hypo:3.9, high = status?status.settings.high:10;
+  let s = `<rect x="${padL}" y="${y(high)}" width="${W-padL-padR}" height="${y(hypo)-y(high)}" fill="var(--band)"/>`;
+  for(let v=4; v<ymax; v+=2) s += `<line x1="${padL}" x2="${W-padR}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${padL-6}" y="${y(v)+4}" font-size="10" fill="var(--ink3)" text-anchor="end">${v}</text>`;
+  s += `<line x1="${padL}" x2="${W-padR}" y1="${y(hypo)}" y2="${y(hypo)}" stroke="var(--red)" stroke-dasharray="3 3" opacity=".6"/>`;
+  const stepH = hours<=6?1:hours<=12?2:4;
+  const first = Math.ceil(t0/3600)*3600;
+  for(let t=first; t<=now; t+=stepH*3600) s += `<text x="${x(t)}" y="${H-6}" font-size="10" fill="var(--ink3)" text-anchor="middle">${hhmm(t)}</text>`;
+  // čára: přerušit při mezeře > 15 min
+  let d='', prev=null;
+  for(const p of pts){ d += (prev && p.ts-prev.ts<=15*60 ? 'L' : 'M') + x(p.ts).toFixed(1)+' '+y(p.mmol).toFixed(1); prev=p; }
+  s += `<path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>`;
+  for(const p of pts) if(p.mmol<hypo||p.mmol>high) s += `<circle cx="${x(p.ts)}" cy="${y(p.mmol)}" r="2" fill="${p.mmol<hypo?'var(--red)':'var(--orange)'}"/>`;
+  for(const b of chartData.boluses){ const bx=x(b.ts), by=H-padB-2; s += `<polygon points="${bx-5},${by} ${bx+5},${by} ${bx},${by-9}" fill="${b.kind==='auto'?'var(--yellow)':'var(--orange)'}"/><text x="${bx}" y="${by-12}" font-size="10" fill="var(--ink2)" text-anchor="middle">${fmt1(b.units)}</text>`; }
+  for(const m of chartData.meal_events){ const mx=x(m.ts); s += `<polygon points="${mx},${padT} ${mx+5},${padT+6} ${mx},${padT+12} ${mx-5},${padT+6}" fill="var(--aqua)"/><line x1="${mx}" x2="${mx}" y1="${padT+12}" y2="${H-padB}" stroke="var(--aqua)" stroke-dasharray="2 4" opacity=".6"/>`; }
+  s += `<line id="cross" x1="0" x2="0" y1="${padT}" y2="${H-padB}" stroke="var(--ink3)" style="display:none"/>`;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = s;
+  const move = ev => { const r=svg.getBoundingClientRect(); const cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-r.left; const t=t0+(cx-padL)/(W-padL-padR)*hours*3600;
+    let best=null; for(const p of pts) if(!best||Math.abs(p.ts-t)<Math.abs(best.ts-t)) best=p; if(!best) return;
+    const c=$('cross'); c.style.display=''; c.setAttribute('x1',x(best.ts)); c.setAttribute('x2',x(best.ts));
+    const tip=$('tip'); tip.style.display=''; tip.textContent=`${hhmm(best.ts)}  ${fmt1(best.mmol)} mmol/l`; tip.style.left=Math.min(cx+8, W-120)+'px'; tip.style.top='4px'; };
+  const leave = () => { $('cross').style.display='none'; $('tip').style.display='none'; };
+  svg.onmousemove = move; svg.ontouchmove = e=>{move(e); e.preventDefault();}; svg.ontouchstart = move; svg.onmouseleave = leave; svg.ontouchend = leave;
+}
+
+// ---------- JÍDLO ----------
+let meals = [], curMeal = null, curRec = null;
+async function loadMeals(){ meals = await api('/meals'); renderMeals(); }
+function renderMeals(){
+  const q = ($('mealSearch').value||'').toLowerCase();
+  const el = $('mealList'); el.innerHTML='';
+  for(const m of meals.filter(m=>m.name.toLowerCase().includes(q))){
+    el.insertAdjacentHTML('beforeend', `<div class="item" onclick="pickMeal(${m.id})"><div class="t"><div class="n">${m.name}</div>
+      <div class="muted">${m.carbs} g S · ${m.fat} g T · ${m.protein} g B na 1 ${m.portion_label}</div></div>
+      <span class="pill">${m.params.n_events ? m.params.n_events+'× naučeno' : 'nové'}</span></div>`);
+  }
+  if(!el.innerHTML) el.innerHTML = '<div class="muted" style="padding:8px">Žádné jídlo. Přidejte první.</div>';
+}
+function showNewMeal(){ $('newMeal').style.display=''; $('nmName').focus(); }
+async function saveNewMeal(){
+  const b = {name:$('nmName').value, carbs:$('nmCarbs').value, fat:$('nmFat').value, protein:$('nmProt').value, portion_label:$('nmLabel').value||'porce'};
+  if(!b.name || !b.carbs) return toast('Zadejte název a sacharidy');
+  const m = await api('/meals',{method:'POST',body:JSON.stringify(b)}); $('newMeal').style.display='none';
+  ['nmName','nmCarbs','nmFat','nmProt','nmLabel'].forEach(i=>$(i).value=''); await loadMeals(); pickMeal(m.id);
+}
+function pickMeal(id){ curMeal = meals.find(m=>m.id===id); $('mealPick').style.display='none'; $('mealRec').style.display=''; $('portions').value=1; $('bgManual').value=''; recommend(); }
+function backToMeals(){ $('mealPick').style.display=''; $('mealRec').style.display='none'; }
+function changePortions(d){ const v=Math.max(0.25, (parseFloat($('portions').value)||1)+d); $('portions').value=v; recommend(); }
+async function recommend(){
+  const portions = parseFloat($('portions').value)||1, bg = $('bgManual').value;
+  curRec = await api('/recommend',{method:'POST',body:JSON.stringify({meal_id:curMeal.id, portions, bg: bg===''?null:bg})});
+  const i = curRec.inputs;
+  $('recName').textContent = curMeal.name;
+  $('recMacros').textContent = `${i.carbs} g sacharidů · ${i.fat} g tuků · ${i.protein} g bílkovin (${i.fpu} FPU) · glykémie ${i.bg!=null?fmt1(i.bg):'?'} · IOB ${fmt1(i.iob)} j.`;
+  $('recNow').textContent = fmt1(curRec.now);
+  $('recLate').textContent = curRec.late ? fmt1(curRec.late) : '–';
+  $('recLateLabel').textContent = curRec.late ? `Za ${curRec.late_delay_min} min (${hhmm(curRec.late_at)})` : 'Druhá dávka';
+  $('recSteps').innerHTML = curRec.steps.map(s=>`<li>${s}</li>`).join('');
+  $('recWarn').innerHTML = curRec.warnings.map(w=>`<div class="warn danger">${w}</div>`).join('');
+  const L = curRec.learned;
+  $('recLearned').textContent = L.n_events ? `Naučeno z ${L.n_events} jídel: první dávka ×${L.now_mult.toFixed(2)}, druhá ×${L.late_mult.toFixed(2)}, odstup ${L.late_delay_min} min.` : 'Toto jídlo ještě nemá historii – návrh je čistě z vašich parametrů.';
+  $('givenNow').value = curRec.now;
+  const h = $('recHistory'); h.innerHTML='';
+  for(const e of curRec.history){
+    h.insertAdjacentHTML('beforeend', `<div class="item"><div class="t"><div class="n">${dmy(e.ts)} ${hhmm(e.ts)} · ${e.portions}× · ${fmt1(e.given_now)} j.${e.given_late?' + '+fmt1(e.given_late)+' j.':''}</div>
+      <div class="muted">${e.verdict || (e.evaluated?'':'ještě nevyhodnoceno')}${e.peak?` · vrchol ${fmt1(e.peak)}, 2 h ${fmt1(e.bg_2h)}, 5 h ${fmt1(e.bg_5h)}, min ${fmt1(e.min)}`:''}</div></div></div>`);
+  }
+  $('recHistoryCard').style.display = curRec.history.length ? '' : 'none';
+}
+async function logMeal(){
+  const given = parseFloat($('givenNow').value);
+  if(isNaN(given)) return toast('Zadejte podanou dávku');
+  await api('/meal_events',{method:'POST',body:JSON.stringify({meal_id:curMeal.id, portions:parseFloat($('portions').value)||1, given_now:given, recommendation:curRec})});
+  toast('Jídlo zapsáno' + (curRec.late ? ` – připomínka druhé dávky za ${curRec.late_delay_min} min` : ''));
+  backToMeals(); location.hash = '#now';
+}
+
+// ---------- HISTORIE ----------
+async function loadHistory(){
+  const evs = await api('/meal_events?limit=40'); const el=$('histList'); el.innerHTML='';
+  if(!evs.length) el.innerHTML='<div class="muted">Zatím žádná jídla.</div>';
+  for(const e of evs){
+    const o = e.outcome || {}, m = o.metrics || {};
+    el.insertAdjacentHTML('beforeend', `<div class="card">
+      <div class="row"><div class="grow"><strong>${e.meal_name}</strong> <span class="muted">${e.portions}× · ${dmy(e.ts)} ${hhmm(e.ts)}</span></div>
+        <span class="pill">${fmt1(e.given_now)} j.${e.given_late!=null?' + '+fmt1(e.given_late)+' j.':''}</span></div>
+      <div class="muted">Návrh: ${fmt1(e.suggested_now)} j.${e.suggested_late?' + '+fmt1(e.suggested_late)+' j. za '+e.suggested_delay_min+' min':''}</div>
+      ${e.evaluated ? `<div class="verdict">${o.verdict||''}</div>
+        ${m.peak!=null?`<div class="metrics"><div>Start<b>${fmt1(m.bg_start)}</b></div><div>Vrchol<b>${fmt1(m.peak)}</b><span>${m.peak_min} min</span></div><div>2 h<b>${fmt1(m.bg_2h)}</b></div><div>5 h<b>${fmt1(m.bg_5h)}</b></div>
+          <div>Min<b>${fmt1(m.min)}</b></div><div>V cíli<b>${Math.round((m.time_in_range||0)*100)} %</b></div><div>Nad<b>${m.min_above_high} min</b></div><div>Pod<b>${m.min_below_hypo} min</b></div></div>`:''}
+        <div class="muted" style="margin-top:6px">${o.learn_note||''}</div>`
+      : `<div class="row" style="margin-top:8px"><span class="muted grow">Vyhodnotí se automaticky 6 h po jídle.</span>
+         ${e.given_late==null && e.suggested_late ? `<input type="number" step="0.1" inputmode="decimal" id="late_${e.id}" value="${e.suggested_late}" style="width:80px"><button class="small" onclick="logLate(${e.id});loadHistory()">2. dávka</button>`:''}
+         <button class="sec small" onclick="evalNow(${e.id})">Vyhodnotit</button></div>`}
+    </div>`);
+  }
+}
+async function evalNow(id){ const r = await api(`/meal_events/${id}/evaluate`,{method:'POST'}); toast(r.pending ? r.note : 'Vyhodnoceno'); loadHistory(); }
+
+// ---------- NASTAVENÍ ----------
+async function loadSettings(){
+  const s = await api('/settings');
+  $('sIcr').value=s.icr; $('sIsf').value=s.isf; $('sTarget').value=s.target; $('sDia').value=s.dia_h; $('sHypo').value=s.hypo; $('sHigh').value=s.high;
+  $('sFpu').value=s.fpu_factor; $('sDelay').value=s.late_delay_min; $('sMaxB').value=s.max_bolus; $('sMaxC').value=s.max_correction; $('sStep').value=s.learn_step;
+  $('sDxUser').value=s.dexcom.username||''; $('sDxPass').value=s.dexcom.password||''; $('sDxRegion').value=s.dexcom.region||'ous';
+  $('sTdUser').value=s.tandem.email||''; $('sTdPass').value=s.tandem.password||''; $('sTdRegion').value=s.tandem.region||'EU';
+  if(status) $('tdStatus').textContent = status.tandem_error ? 'Chyba: '+status.tandem_error : status.tandem_last_sync ? 'Poslední sync '+hhmm(status.tandem_last_sync) : '';
+}
+async function tandemProbe(){
+  await saveSettings();
+  $('tdStatus').textContent='Testuji… (až minutu)'; $('tdProbe').style.display='none';
+  try{
+    const r = await fetch('/api/tandem/probe',{method:'POST'}); const d = await r.json();
+    const b = d.boluses_found||[];
+    $('tdStatus').textContent = d.ok ? `OK – ${d.events_count} událostí, ${b.length} bolusů za 48 h` : 'Nepodařilo se: '+(d.error||'');
+    const lines = [];
+    if(d.tconnectsync_version) lines.push('tconnectsync '+d.tconnectsync_version);
+    for(const a of d.attempts||[]) lines.push(a.join(' | '));
+    if(d.pump) lines.push('pumpa: '+JSON.stringify(d.pump.all_pumps||d.pump));
+    if(d.note) lines.push('⚠ '+d.note);
+    if(d.event_classes) lines.push('typy: '+JSON.stringify(d.event_classes));
+    for(const x of b.slice(-10)) lines.push(`${dmy(x.ts)} ${hhmm(x.ts)}  ${fmt1(x.units)} j.  ${x.kind}${x.carbs?'  ('+x.carbs+' g)':''}`);
+    lines.push('Podrobnosti: data/tandem_probe.json');
+    $('tdProbe').textContent = lines.join('\n'); $('tdProbe').style.display='';
+  }catch(e){ $('tdStatus').textContent='Chyba: '+e.message; }
+}
+async function saveSettings(){
+  const b = {icr:$('sIcr').value, isf:$('sIsf').value, target:$('sTarget').value, dia_h:$('sDia').value, hypo:$('sHypo').value, high:$('sHigh').value,
+    fpu_factor:$('sFpu').value, late_delay_min:$('sDelay').value, max_bolus:$('sMaxB').value, max_correction:$('sMaxC').value, learn_step:$('sStep').value,
+    dexcom:{username:$('sDxUser').value, password:$('sDxPass').value, region:$('sDxRegion').value},
+    tandem:{email:$('sTdUser').value, password:$('sTdPass').value, region:$('sTdRegion').value}};
+  await api('/settings',{method:'PUT',body:JSON.stringify(b)}); toast('Uloženo');
+}
+async function restartServer(){ try{ await api('/restart',{method:'POST'}); }catch(e){} toast('Restartuji… stránka se za chvíli obnoví'); setTimeout(()=>location.reload(), 5000); }
+async function syncNow(){ const r = await api('/sync',{method:'POST'}); toast((r.error ? 'Dexcom chyba: '+r.error : `Dexcom: ${r.new} nových hodnot`) + (r.tandem_error ? ' · Tandem chyba: '+r.tandem_error : r.tandem_new!=null ? ` · Tandem: ${r.tandem_new} nových bolusů` : '')); }
+async function importCsv(){
+  const f = $('csvFile').files[0]; if(!f) return toast('Vyberte soubor');
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/import/tandem',{method:'POST',body:fd}); const j = await r.json();
+  $('importInfo').textContent = j.error ? `Chyba: ${j.error}. Sloupce: ${(j.header||[]).join(', ')}` : `Rozpoznáno ${j.parsed}, nově uloženo ${j.imported}, přeskočeno ${j.skipped}.`;
+}
+
+show(location.hash.slice(1)||'now');
+setInterval(()=>{ if(document.querySelector('#page-now.on')) refreshNow(); }, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+flask>=3.0
+requests>=2.31
+pydexcom>=0.4
+tconnectsync>=3.0
+waitress>=3.0

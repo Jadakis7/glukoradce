@@ -1,0 +1,6 @@
+# Reverzní proxy s automatickým HTTPS (Let's Encrypt). DOMAIN je v .env,
+# např. 130.61.10.20.sslip.io – bezplatná doména odvozená z IP adresy serveru.
+{$DOMAIN} {
+    encode gzip
+    reverse_proxy app:8765
+}

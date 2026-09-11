@@ -1,0 +1,35 @@
+# Glukorádce na vlastním serveru (Oracle Cloud Always Free, Hetzner, Raspberry Pi…)
+# Spuštění: docker compose up -d --build   (nebo deploy/install.sh, který udělá vše)
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      GLUKORADCE_DB: /data/glukoradce.sqlite
+      GLUKORADCE_AUTORELOAD: "0"
+      GLUKORADCE_HTTPS: "1"
+      PORT: "8765"
+    volumes:
+      - data:/data
+    expose:
+      - "8765"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:
