@@ -33,7 +33,9 @@ app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True,
                   PERMANENT_SESSION_LIFETIME=dt.timedelta(days=90))
 db: DB = None
 state = {"last_sync": None, "last_error": None, "demo": False,
-         "tandem_last_sync": None, "tandem_error": None, "tandem_new": 0}
+         "tandem_last_sync": None, "tandem_error": None, "tandem_new": 0,
+         "dexcom_retry_after": 0}
+AUTH_BACKOFF_SEC = 30 * 60  # po neúspěšném přihlášení k Dexcomu půl hodiny nezkoušet (ochrana před zámkem účtu)
 
 
 # ---------------------------------------------------------------- pomocné
@@ -326,8 +328,11 @@ def api_put_settings():
         if key in d:
             merged = dict(cur.get(key) or {})
             for k in fields:
-                if k in d[key] and d[key][k] != "••••••":
-                    merged[k] = d[key][k]
+                if k not in d[key]:
+                    continue
+                if k == "password" and (d[key][k] in ("", "••••••") or d[key][k] is None):
+                    continue  # prázdné = ponechat uložené heslo
+                merged[k] = d[key][k]
             d[key] = merged
     for k in ("icr", "isf", "target", "dia_h", "fpu_factor", "max_bolus", "max_correction", "hypo", "high",
               "learn_step", "peak_min", "late_delay_min", "late_min_units", "poll_sec"):
@@ -336,6 +341,7 @@ def api_put_settings():
     s = db.set_settings(d)
     state["last_error"] = None
     state["tandem_error"] = None
+    state["dexcom_retry_after"] = 0  # po změně nastavení zkusit hned
     return jsonify(_public_settings(s))
 
 
@@ -366,13 +372,17 @@ def api_tandem_probe():
 def _sync_once():
     s = _settings()
     n = 0
-    if not state["demo"]:
+    if not state["demo"] and time.time() >= state["dexcom_retry_after"]:
         try:
             n = dexcom_client.sync_once(db, s)
             state["last_sync"] = int(time.time())
             state["last_error"] = None
         except Exception as ex:  # noqa: BLE001
-            state["last_error"] = str(ex)
+            msg = str(ex)
+            if "authenticate" in msg.lower() or "password" in msg.lower() or "account" in msg.lower():
+                state["dexcom_retry_after"] = time.time() + AUTH_BACKOFF_SEC
+                msg += " – zkontrolujte jméno/heslo v Nastavení; další pokus za 30 min (ochrana před zamknutím účtu)."
+            state["last_error"] = msg
             log.warning("Dexcom sync selhal: %s", ex)
     tcfg = s.get("tandem") or {}
     if not state["demo"] and tcfg.get("email") and tcfg.get("password") and tcfg.get("enabled", True):
