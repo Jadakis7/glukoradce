@@ -204,14 +204,14 @@ details summary{cursor:pointer;color:var(--accent);font-size:14px}
       <strong>Dexcom Share</strong>
       <div class="muted">Účet Dexcom (ne Follow). V aplikaci Dexcom G7 musí být zapnuté sdílení.</div>
       <label>Uživatelské jméno / e-mail</label><input id="sDxUser" autocomplete="off" name="dexcom_user_x">
-      <label>Heslo</label><input id="sDxPass" type="password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" placeholder="">
+      <div class="row" style="margin-top:10px"><span class="muted grow" id="sDxPassState">Heslo: –</span><button class="sec small" type="button" onclick="changePassword('dexcom')">Změnit heslo</button></div>
       <label>Region</label><select id="sDxRegion"><option value="ous">Evropa / mimo USA</option><option value="us">USA</option></select>
     </div>
     <div class="card">
       <strong>Tandem Source (pumpa t:slim X2)</strong>
       <div class="muted">Účet, kterým se přihlašujete do aplikace t:connect / webu Tandem Source. Bolusy i automatické korekce Control-IQ se pak stahují samy každých 5 min.</div>
       <label>E-mail</label><input id="sTdUser" autocomplete="off" name="tandem_user_x">
-      <label>Heslo</label><input id="sTdPass" type="password" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" placeholder="">
+      <div class="row" style="margin-top:10px"><span class="muted grow" id="sTdPassState">Heslo: –</span><button class="sec small" type="button" onclick="changePassword('tandem')">Změnit heslo</button></div>
       <label>Region</label><select id="sTdRegion"><option value="EU">Evropa</option><option value="US">USA</option></select>
       <div class="row" style="margin-top:12px"><button class="sec small" onclick="tandemProbe()">Otestovat připojení</button><span class="muted" id="tdStatus"></span></div>
       <pre id="tdProbe" class="muted" style="white-space:pre-wrap;font-size:12px;display:none"></pre>
@@ -408,9 +408,16 @@ async function loadSettings(){
   const s = await api('/settings');
   $('sIcr').value=s.icr; $('sIsf').value=s.isf; $('sTarget').value=s.target; $('sDia').value=s.dia_h; $('sHypo').value=s.hypo; $('sHigh').value=s.high;
   $('sFpu').value=s.fpu_factor; $('sDelay').value=s.late_delay_min; $('sMaxB').value=s.max_bolus; $('sMaxC').value=s.max_correction; $('sStep').value=s.learn_step;
-  $('sDxUser').value=s.dexcom.username||''; $('sDxPass').value=''; $('sDxPass').placeholder = s.dexcom.password ? 'uloženo – pro změnu zadejte nové' : 'zadejte heslo'; $('sDxRegion').value=s.dexcom.region||'ous';
-  $('sTdUser').value=s.tandem.email||''; $('sTdPass').value=''; $('sTdPass').placeholder = s.tandem.password ? 'uloženo – pro změnu zadejte nové' : 'zadejte heslo'; $('sTdRegion').value=s.tandem.region||'EU';
+  $('sDxUser').value=s.dexcom.username||''; $('sDxPassState').textContent = s.dexcom.password ? 'Heslo: uloženo ✓' : 'Heslo: není nastaveno'; $('sDxRegion').value=s.dexcom.region||'ous';
+  $('sTdUser').value=s.tandem.email||''; $('sTdPassState').textContent = s.tandem.password ? 'Heslo: uloženo ✓' : 'Heslo: není nastaveno'; $('sTdRegion').value=s.tandem.region||'EU';
   if(status) $('tdStatus').textContent = status.tandem_error ? 'Chyba: '+status.tandem_error : status.tandem_last_sync ? 'Poslední sync '+hhmm(status.tandem_last_sync) : '';
+}
+async function changePassword(which){
+  const label = which==='dexcom' ? 'Dexcom' : 'Tandem Source';
+  const pw = window.prompt('Zadejte heslo k účtu ' + label + ' (heslo se uloží jen na serveru):');
+  if(pw===null) return; if(!pw.trim()) return toast('Prázdné heslo – nic se nezměnilo');
+  const body = {}; body[which] = {password: pw};
+  await api('/settings',{method:'PUT',body:JSON.stringify(body)}); toast('Heslo uloženo'); loadSettings();
 }
 async function tandemProbe(){
   await saveSettings();
@@ -433,8 +440,8 @@ async function tandemProbe(){
 async function saveSettings(){
   const b = {icr:$('sIcr').value, isf:$('sIsf').value, target:$('sTarget').value, dia_h:$('sDia').value, hypo:$('sHypo').value, high:$('sHigh').value,
     fpu_factor:$('sFpu').value, late_delay_min:$('sDelay').value, max_bolus:$('sMaxB').value, max_correction:$('sMaxC').value, learn_step:$('sStep').value,
-    dexcom:{username:$('sDxUser').value, password:$('sDxPass').value, region:$('sDxRegion').value},
-    tandem:{email:$('sTdUser').value, password:$('sTdPass').value, region:$('sTdRegion').value}};
+    dexcom:{username:$('sDxUser').value, region:$('sDxRegion').value},
+    tandem:{email:$('sTdUser').value, region:$('sTdRegion').value}};
   await api('/settings',{method:'PUT',body:JSON.stringify(b)}); toast('Uloženo'); loadSettings();
 }
 async function restartServer(){ try{ await api('/restart',{method:'POST'}); }catch(e){} toast('Restartuji… stránka se za chvíli obnoví'); setTimeout(()=>location.reload(), 5000); }
