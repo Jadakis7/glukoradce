@@ -12,6 +12,7 @@ services:
       PORT: "8765"
     volumes:
       - data:/data
+      - tconnect_cache:/root/.config/tconnectsync   # uložený přihlašovací token Tandemu (přežije aktualizace)
     expose:
       - "8765"
 
@@ -31,5 +32,6 @@ services:
 
 volumes:
   data:
+  tconnect_cache:
   caddy_data:
   caddy_config:

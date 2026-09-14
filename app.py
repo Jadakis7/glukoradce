@@ -34,7 +34,7 @@ app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True,
 db: DB = None
 state = {"last_sync": None, "last_error": None, "demo": False,
          "tandem_last_sync": None, "tandem_error": None, "tandem_new": 0,
-         "dexcom_retry_after": 0}
+         "dexcom_retry_after": 0, "tandem_retry_after": 0}
 AUTH_BACKOFF_SEC = 30 * 60  # po neúspěšném přihlášení k Dexcomu půl hodiny nezkoušet (ochrana před zámkem účtu)
 
 
@@ -342,6 +342,7 @@ def api_put_settings():
     state["last_error"] = None
     state["tandem_error"] = None
     state["dexcom_retry_after"] = 0  # po změně nastavení zkusit hned
+    state["tandem_retry_after"] = 0
     return jsonify(_public_settings(s))
 
 
@@ -385,13 +386,20 @@ def _sync_once():
             state["last_error"] = msg
             log.warning("Dexcom sync selhal: %s", ex)
     tcfg = s.get("tandem") or {}
-    if not state["demo"] and tcfg.get("email") and tcfg.get("password") and tcfg.get("enabled", True):
+    if not state["demo"] and tcfg.get("email") and tcfg.get("password") and tcfg.get("enabled", True) \
+            and time.time() >= state["tandem_retry_after"]:
         try:
             state["tandem_new"] = tandem_sync.sync_once(db, s)
             state["tandem_last_sync"] = int(time.time())
             state["tandem_error"] = None
         except Exception as ex:  # noqa: BLE001
-            state["tandem_error"] = str(ex)
+            msg = str(ex)
+            low = msg.lower()
+            if "locked_out" in low or "401" in low or "login" in low or "unauthorized" in low:
+                state["tandem_retry_after"] = time.time() + AUTH_BACKOFF_SEC
+                msg = ("Tandem odmítl přihlášení (" + ("účet je dočasně zamčený" if "locked_out" in low else "špatné jméno/heslo?")
+                       + ") – další pokus za 30 min. " + msg[:160])
+            state["tandem_error"] = msg
             log.warning("Tandem sync selhal: %s", ex)
     try:
         for eid, r in outcomes.evaluate_pending(db, s):
