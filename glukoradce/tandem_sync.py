@@ -30,6 +30,8 @@ def _api(email, password, region="EU"):
         raise TandemError("Knihovna tconnectsync není nainstalovaná (pip install tconnectsync).") from ex
     import os
     os.environ.setdefault("TCONNECT_REGION", region)
+    # tconnectsync vykládá časy z pumpy v pásmu TIMEZONE_NAME (výchozí America/New_York!)
+    os.environ.setdefault("TIMEZONE_NAME", os.environ.get("TZ") or "Europe/Prague")
     try:
         from tconnectsync import secret
         if hasattr(secret, "TCONNECT_REGION"):

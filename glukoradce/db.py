@@ -214,5 +214,12 @@ class DB:
         """Spáruje ručně zapsaný bolus se záznamem z pumpy (aby nebyl dvakrát)."""
         self._x("UPDATE boluses SET ext_id=?, source=? WHERE id=?", (ext_id, source, bid))
 
+    def delete_boluses_by_source(self, source):
+        """Smaže bolusy daného zdroje (např. po opravě časového pásma – stáhnou se znovu)."""
+        with self._lock:
+            cur = self._conn.execute("DELETE FROM boluses WHERE source=?", (source,))
+            self._conn.commit()
+            return cur.rowcount
+
     def delete_bolus(self, bid):
         self._x("DELETE FROM boluses WHERE id=?", (bid,))
