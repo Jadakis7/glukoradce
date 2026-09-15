@@ -10,6 +10,8 @@ services:
       GLUKORADCE_AUTORELOAD: "0"
       GLUKORADCE_HTTPS: "1"
       PORT: "8765"
+      TZ: "Europe/Prague"
+      TIMEZONE_NAME: "Europe/Prague"
     volumes:
       - data:/data
       - tconnect_cache:/root/.config/tconnectsync   # uložený přihlašovací token Tandemu (přežije aktualizace)

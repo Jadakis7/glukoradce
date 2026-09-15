@@ -88,6 +88,12 @@ def _meal_history(meal_id, limit=5):
 # Heslo se nastavuje proměnnou prostředí GLUKORADCE_PASSWORD (na serveru povinné).
 # Bez ní aplikace běží bez přihlášení – vhodné jen doma na localhostu.
 PASSWORD = os.environ.get("GLUKORADCE_PASSWORD") or ""
+os.environ.setdefault("TZ", "Europe/Prague")
+os.environ.setdefault("TIMEZONE_NAME", os.environ["TZ"])
+try:
+    time.tzset()
+except AttributeError:
+    pass
 
 LOGIN_HTML = """<!doctype html><html lang="cs"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>Glukorádce – přihlášení</title>
@@ -481,6 +487,13 @@ def main():
         app.secret_key = key_file.read_text().strip()
     if os.environ.get("GLUKORADCE_HTTPS", "").lower() in ("1", "true", "yes") or os.environ.get("RAILWAY_ENVIRONMENT"):
         app.config["SESSION_COOKIE_SECURE"] = True
+    # jednorázová oprava: bolusy z Tandemu uložené se špatným časovým pásmem smazat a stáhnout znovu
+    tz_marker = data_dir / ".tz_fix_v1"
+    if not tz_marker.exists():
+        n_del = db.delete_boluses_by_source("tandem")
+        tz_marker.write_text("ok")
+        if n_del:
+            log.info("Smazáno %s bolusů z Tandemu (oprava časového pásma) – stáhnou se znovu.", n_del)
     if PASSWORD:
         log.info("Přihlášení heslem je zapnuté.")
     else:
