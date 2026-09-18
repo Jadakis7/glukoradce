@@ -430,6 +430,8 @@ async function tandemProbe(){
     if(d.tconnectsync_version) lines.push('tconnectsync '+d.tconnectsync_version);
     for(const a of d.attempts||[]) lines.push(a.join(' | '));
     if(d.pump) lines.push('pumpa: '+JSON.stringify(d.pump.all_pumps||d.pump));
+    if(d.tz) lines.push('pásmo: '+JSON.stringify(d.tz));
+    if(d.raw_bolus_times) for(const r of d.raw_bolus_times) lines.push('raw: '+JSON.stringify(r));
     if(d.note) lines.push('⚠ '+d.note);
     if(d.event_classes) lines.push('typy: '+JSON.stringify(d.event_classes));
     for(const x of b.slice(-10)) lines.push(`${dmy(x.ts)} ${hhmm(x.ts)}  ${fmt1(x.units)} j.  ${x.kind}${x.carbs?'  ('+x.carbs+' g)':''}`);
