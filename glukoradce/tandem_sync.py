@@ -384,6 +384,23 @@ def probe(email, password, region="EU", hours=24):
         diag["boluses_found"] = extract_boluses_v3(events) if v3 else extract_boluses(events)
         if v3 and not diag["boluses_found"]:
             diag["boluses_found"] = extract_boluses(events)
+        # surové časy pro ladění časového pásma
+        import os as _os
+        diag["tz"] = {"TZ": _os.environ.get("TZ"), "TIMEZONE_NAME": _os.environ.get("TIMEZONE_NAME"),
+                      "server_now": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                      "server_utc": dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")}
+        try:
+            from tconnectsync import secret as _sec
+            diag["tz"]["lib_TIMEZONE_NAME"] = getattr(_sec, "TIMEZONE_NAME", None)
+        except Exception:  # noqa: BLE001
+            pass
+        raw = []
+        for e in events:
+            if type(e).__name__ == "LidBolusCompleted":
+                ts_obj = getattr(e, "eventTimestamp", None)
+                raw.append({"units": getattr(e, "insulinDelivered", None), "timestampRaw": getattr(e, "timestampRaw", None),
+                            "eventTimestamp": str(ts_obj), "unix": _ts_to_unix(ts_obj)})
+        diag["raw_bolus_times"] = raw[-5:]
         diag["ok"] = True
     except Exception as ex:  # noqa: BLE001
         diag["error"] = f"{type(ex).__name__}: {ex}"
