@@ -32,13 +32,23 @@ def _api(email, password, region="EU"):
     os.environ.setdefault("TCONNECT_REGION", region)
     # tconnectsync vykládá časy z pumpy v pásmu TIMEZONE_NAME (výchozí America/New_York!)
     os.environ.setdefault("TIMEZONE_NAME", os.environ.get("TZ") or "Europe/Prague")
+    tzname = os.environ["TIMEZONE_NAME"]
     try:
         from tconnectsync import secret
         if hasattr(secret, "TCONNECT_REGION"):
             secret.TCONNECT_REGION = region
+        secret.TIMEZONE_NAME = tzname
     except Exception:  # noqa: BLE001
         pass
     from tconnectsync.api import TConnectApi
+    # moduly knihovny, které si už pásmo zkopírovaly (from .secret import TIMEZONE_NAME), přepsat také
+    import sys
+    for name, mod in list(sys.modules.items()):
+        if name.startswith("tconnectsync") and getattr(mod, "TIMEZONE_NAME", None) not in (None, tzname):
+            try:
+                mod.TIMEZONE_NAME = tzname
+            except Exception:  # noqa: BLE001
+                pass
     try:
         return TConnectApi(email, password, region)   # tconnectsync >= 3
     except TypeError:
