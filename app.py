@@ -20,7 +20,7 @@ import secrets
 from flask import Flask, jsonify, redirect, request, send_from_directory, session
 
 sys.path.insert(0, str(Path(__file__).parent))
-from glukoradce import dexcom_client, outcomes, recommender, tandem_import, tandem_sync  # noqa: E402
+from glukoradce import dexcom_client, foods, outcomes, recommender, tandem_import, tandem_sync  # noqa: E402
 from glukoradce.db import DB  # noqa: E402
 from glukoradce.iob import iob_at  # noqa: E402
 
@@ -49,6 +49,9 @@ def _public_settings(s):
         d = dict(s.get(key) or {})
         d["password"] = "••••••" if d.get("password") else ""
         s[key] = d
+    ai = dict(s.get("ai") or {})
+    ai["api_key"] = "••••••" if ai.get("api_key") else ""
+    s["ai"] = ai
     return s
 
 
@@ -171,6 +174,7 @@ def api_status():
         "dexcom_configured": bool((s.get("dexcom") or {}).get("username")),
         "tandem_configured": bool((s.get("tandem") or {}).get("email")),
         "tandem_last_sync": state["tandem_last_sync"], "tandem_error": state["tandem_error"],
+        "pump_data_ts": tandem_sync.last_pump_data_ts(),
         "settings": {k: s[k] for k in ("hypo", "high", "target", "dia_h")},
     })
 
@@ -330,13 +334,14 @@ def api_get_settings():
 def api_put_settings():
     d = request.get_json(force=True)
     cur = _settings()
-    for key, fields in (("dexcom", ("username", "password", "region")), ("tandem", ("email", "password", "region", "enabled"))):
+    for key, fields in (("dexcom", ("username", "password", "region")), ("tandem", ("email", "password", "region", "enabled")),
+                        ("ai", ("api_key", "model"))):
         if key in d:
             merged = dict(cur.get(key) or {})
             for k in fields:
                 if k not in d[key]:
                     continue
-                if k == "password" and (d[key][k] in ("", "••••••") or d[key][k] is None):
+                if k in ("password", "api_key") and (d[key][k] in ("", "••••••") or d[key][k] is None):
                     continue  # prázdné = ponechat uložené heslo
                 merged[k] = d[key][k]
             d[key] = merged
@@ -350,6 +355,14 @@ def api_put_settings():
     state["dexcom_retry_after"] = 0  # po změně nastavení zkusit hned
     state["tandem_retry_after"] = 0
     return jsonify(_public_settings(s))
+
+
+@app.post("/api/estimate")
+def api_estimate():
+    """Odhad živin jídla podle názvu (Claude, když je klíč; jinak vestavěná tabulka)."""
+    d = request.get_json(force=True) or {}
+    ai = _settings().get("ai") or {}
+    return jsonify(foods.estimate(d.get("name", ""), ai.get("api_key") or None, ai.get("model") or None))
 
 
 @app.post("/api/sync")
