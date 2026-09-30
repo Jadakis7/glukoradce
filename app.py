@@ -357,6 +357,27 @@ def api_put_settings():
     return jsonify(_public_settings(s))
 
 
+@app.post("/api/iob_check")
+def api_iob_check():
+    """Uživatel opíše IOB z pumpy – ukládá se dvojice (čas, pumpa, aplikace) pro kalibraci křivky."""
+    d = request.get_json(force=True) or {}
+    now = int(time.time())
+    s = _settings()
+    app_iob = _iob_now(s, now)
+    db.add_iob_check(now, float(d["pump_iob"]), app_iob)
+    return jsonify({"ok": True, "ts": now, "pump_iob": float(d["pump_iob"]), "app_iob": app_iob,
+                    "n": len(db.iob_checks(1000))})
+
+
+@app.get("/api/iob_checks")
+def api_iob_checks():
+    """Kontrolní dvojice + bolusy okolo (pro dofitování křivky)."""
+    checks = db.iob_checks(500)
+    t0 = min([c["ts"] for c in checks], default=int(time.time())) - 8 * 3600
+    return jsonify({"checks": checks, "boluses": db.boluses_between(t0, int(time.time())),
+                    "settings": {k: _settings()[k] for k in ("dia_h", "peak_min")}})
+
+
 @app.post("/api/estimate")
 def api_estimate():
     """Odhad živin jídla podle názvu (Claude, když je klíč; jinak vestavěná tabulka)."""
