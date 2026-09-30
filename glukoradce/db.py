@@ -65,6 +65,8 @@ class DB:
                     meal_id INTEGER PRIMARY KEY, now_mult REAL DEFAULT 1.0, late_mult REAL DEFAULT 1.0,
                     late_delay_min INTEGER, n_events INTEGER DEFAULT 0, updated_ts INTEGER, history TEXT);
                 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
+                CREATE TABLE IF NOT EXISTS iob_checks(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, pump_iob REAL NOT NULL, app_iob REAL);
                 """
             )
             c.commit()
@@ -221,6 +223,13 @@ class DB:
             cur = self._conn.execute("DELETE FROM boluses WHERE source=?", (source,))
             self._conn.commit()
             return cur.rowcount
+
+    # ---------- kontrola IOB proti pumpě ----------
+    def add_iob_check(self, ts, pump_iob, app_iob):
+        return self._x("INSERT INTO iob_checks(ts,pump_iob,app_iob) VALUES(?,?,?)", (int(ts), float(pump_iob), app_iob))
+
+    def iob_checks(self, limit=200):
+        return self._q("SELECT * FROM iob_checks ORDER BY ts DESC LIMIT ?", (limit,))
 
     def delete_bolus(self, bid):
         self._x("DELETE FROM boluses WHERE id=?", (bid,))
