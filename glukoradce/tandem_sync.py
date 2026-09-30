@@ -417,6 +417,23 @@ def probe(email, password, region="EU", hours=24):
     return diag
 
 
+_LAST_PUMP = {"max_events_ts": None}
+
+
+def last_pump_data_ts():
+    """Unix čas posledních dat pumpy v Tandem cloudu (z posledního stahování), nebo None."""
+    return _LAST_PUMP.get("max_events_ts")
+
+
+def _remember_pump(diag):
+    try:
+        mx = (diag.get("pump") or {}).get("maxDateOfEvents")
+        if mx:
+            _LAST_PUMP["max_events_ts"] = _ts_to_unix(dt.datetime.fromisoformat(str(mx)).astimezone())
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def sync_once(db, settings, cache={}):
     """Stáhne poslední bolusy z Tandem Source a uloží nové. Vrací počet nových."""
     cfg = settings.get("tandem") or {}
@@ -433,7 +450,9 @@ def sync_once(db, settings, cache={}):
         hours = max(3, int((time.time() - last) / 3600) + 3)
     try:
         try:
-            events = fetch_events_v3(api, hours)
+            diag = {}
+            events = fetch_events_v3(api, hours, diag)
+            _remember_pump(diag)
             boluses = extract_boluses_v3(events) or extract_boluses(events)
         except (AttributeError, TypeError, KeyError):
             events = fetch_events(api, hours)

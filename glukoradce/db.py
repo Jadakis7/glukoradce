@@ -25,6 +25,7 @@ DEFAULT_SETTINGS = {
     "mult_max": 1.5,
     "dexcom": {"username": "", "password": "", "region": "ous"},
     "tandem": {"email": "", "password": "", "region": "EU", "enabled": True},
+    "ai": {"api_key": "", "model": "claude-haiku-4-5"},   # odhad živin jídla přes Claude (volitelné)
     "poll_sec": 300,
     "demo": False,
 }
