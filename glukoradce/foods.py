@@ -120,6 +120,64 @@ FOODS = {
     "tortilla chips": (35, 15, 4, "porce 60 g"),
     "brambůrky": (30, 20, 3, "porce 60 g"),
     "popcorn": (30, 12, 4, "malá porce"),
+    # suroviny / části jídla (pro skládání „X a Y“)
+    "mozzarella": (2, 22, 23, "1 koule (125 g)"),
+    "sýr eidam": (0.5, 5, 5, "1 plátek (20 g)"),
+    "sýr": (0.5, 5, 5, "1 plátek (20 g)"),
+    "tavený sýr": (1, 5, 2, "1 trojúhelníček (17 g)"),
+    "cottage": (3, 4, 12, "1/2 kelímku (100 g)"),
+    "tvaroh": (4, 1, 12, "1/2 kelímku (125 g)"),
+    "šunka": (0.3, 0.6, 4, "1 plátek (20 g)"),
+    "salám": (0.3, 6, 3, "1 plátek (20 g)"),
+    "slanina": (0, 8, 3, "1 plátek (20 g)"),
+    "párek": (1, 15, 7, "1 ks (60 g)"),
+    "máslo": (0, 8, 0, "10 g (na 1 krajíc)"),
+    "vejce": (0.5, 5, 6, "1 ks"),
+    "vejce natvrdo": (0.5, 5, 6, "1 ks"),
+    "med": (17, 0, 0, "1 lžíce (20 g)"),
+    "džem": (12, 0, 0, "1 lžíce (20 g)"),
+    "nutella": (17, 9, 2, "1 lžíce (30 g)"),
+    "arašídové máslo": (4, 15, 8, "1 lžíce (30 g)"),
+    "avokádo": (2, 15, 2, "1/2 ks"),
+    "ořechy": (3, 18, 5, "hrst (30 g)"),
+    "rajče": (4, 0, 1, "1 ks"),
+    "okurka": (3, 0, 1, "1/2 ks"),
+    "paprika": (6, 0, 1, "1 ks"),
+    "mrkev": (6, 0, 1, "1 ks"),
+    "kukuřice": (20, 1, 3, "1/2 plechovky (100 g)"),
+    "tuňák": (0, 1, 25, "1 plechovka (100 g)"),
+    "kuřecí maso": (0, 3, 22, "100 g"),
+    "hovězí maso": (0, 10, 22, "100 g"),
+    "vepřové maso": (0, 15, 20, "100 g"),
+    "rybí prsty": (5, 3, 3, "1 ks"),
+    "ovesné vločky": (25, 3, 5, "40 g"),
+    "rýže": (45, 0.5, 4, "porce 150 g vařené"),
+    "brambory": (35, 0, 4, "porce 200 g"),
+    "těstoviny": (45, 1, 7, "porce 150 g vařené"),
+    "knedlík": (14, 0.5, 2, "1 plátek"),
+    "hruška": (20, 0, 0.5, "1 ks"),
+    "mandarinka": (8, 0, 0.5, "1 ks"),
+    "jahody": (8, 0, 1, "hrst (100 g)"),
+    "borůvky": (10, 0, 1, "hrst (100 g)"),
+    "kiwi": (10, 0, 1, "1 ks"),
+    "meloun": (10, 0, 1, "plátek (150 g)"),
+    "smoothie": (30, 1, 3, "sklenice 300 ml"),
+    "cappuccino": (8, 4, 4, "1 šálek"),
+    "latte": (12, 6, 6, "1 velký šálek"),
+    "káva s mlékem": (3, 1.5, 1.5, "1 šálek"),
+    "čaj s cukrem": (10, 0, 0, "1 hrnek, 2 lžičky cukru"),
+    "cukr": (5, 0, 0, "1 lžička"),
+    "kečup": (5, 0, 0, "1 lžíce"),
+    "majonéza": (0, 12, 0, "1 lžíce"),
+    "tatarka": (1, 10, 0, "1 lžíce"),
+    "hořčice": (1, 0, 0, "1 lžička"),
+    "olej": (0, 10, 0, "1 lžíce"),
+    "smetana": (2, 10, 1, "50 ml (33 %)"),
+    "tortilla": (30, 4, 5, "1 placka"),
+    "pita": (33, 1, 6, "1 ks"),
+    "bageta": (55, 2, 10, "1 ks (100 g)"),
+    "vánočka": (35, 6, 5, "1 krajíc"),
+    "buchta": (35, 8, 5, "1 ks"),
 }
 
 
@@ -131,29 +189,119 @@ def _norm(s):
 _NORM_INDEX = {_norm(k): k for k in FOODS}
 
 
+_NUM_WORDS = {"jeden": 1, "jedna": 1, "jedno": 1, "dva": 2, "dve": 2, "tri": 3, "ctyri": 4, "pet": 5, "sest": 6,
+              "pul": 0.5, "pulka": 0.5, "polovina": 0.5, "ctvrt": 0.25}
+_UNIT_WORDS = {"platek", "platky", "platku", "krajic", "krajice", "krajicu", "kus", "kusy", "kusu", "ks", "kousek",
+               "kousky", "kousku", "porce", "porci", "lzice", "lzicka", "lzicky", "hrst", "sklenice", "hrnek",
+               "kelimek", "balicek", "koule", "rohliky"}
+_STOP = {"s", "se", "a", "na", "k", "ke", "v", "ve", "z", "ze", "o", "trochu", "velky", "velka", "velke", "maly", "mala",
+         "male", "trosku", "mnou", "domaci", "cerstvy", "cerstva", "cerstve", "obycejny"}
+_SPLIT_RE = re.compile(r"\s*(?:,|\+|;| a | s | se | plus )\s*")
+
+
+def _match_one(q):
+    """Najde položku tabulky pro jeden (už normalizovaný) výraz. Vrací původní klíč nebo None."""
+    q = q.strip()
+    if not q:
+        return None
+    if q in _NORM_INDEX:
+        return _NORM_INDEX[q]
+    keys = list(_NORM_INDEX)
+    words = q.split()
+    # slovo z dotazu je klíč (nebo klíč je obsažen v dotazu jako celé slovo/slova) – nejdelší shoda
+    contained = [k for k in keys if re.search(r"(?<![a-z])" + re.escape(k) + r"(?![a-z])", q)]
+    if contained:
+        return _NORM_INDEX[max(contained, key=len)]
+    # skloňování: shoda kmene slov (chleba ~ chleb, šunkou ~ šunka) u jednoslovných klíčů
+    for k in keys:
+        kw = k.split()
+        if len(kw) == 1:
+            n = max(3, min(4, len(kw[0]) - 1))
+            if any(w[:n] == kw[0][:n] and abs(len(w) - len(kw[0])) <= 2 for w in words if len(w) >= 3):
+                return _NORM_INDEX[k]
+    # dotaz obsažený v klíči („kuřecí“ -> „kuřecí maso“) – jen když je dotaz aspoň 4 znaky; přednost má klíč začínající dotazem
+    if len(q) >= 4:
+        contained = [k for k in keys if q in k]
+        if contained:
+            return _NORM_INDEX[min(contained, key=lambda k: (0 if k.startswith(q) else 1, len(k)))]
+    close = difflib.get_close_matches(q, keys, n=1, cutoff=0.75)
+    return _NORM_INDEX[close[0]] if close else None
+
+
+def _parse_part(part):
+    """'2 platky chleba' -> (mnozstvi, gramy|None, 'chleba')."""
+    qty, grams = None, None
+    words = part.split()
+    rest = []
+    i = 0
+    while i < len(words):
+        w = words[i]
+        m = re.fullmatch(r"(\d+(?:[.,]\d+)?)(g|ml|gramu|gram|kg)?", w)
+        if m:
+            v = float(m.group(1).replace(",", "."))
+            unit = m.group(2) or (words[i + 1] if i + 1 < len(words) and words[i + 1] in ("g", "ml", "gramu", "gram", "kg") else None)
+            if unit:
+                grams = v * (1000 if unit == "kg" else 1)
+                if not m.group(2):
+                    i += 1
+            else:
+                qty = v
+        elif w in _NUM_WORDS and qty is None:
+            qty = _NUM_WORDS[w]
+        elif w in _UNIT_WORDS or w in _STOP:
+            pass
+        else:
+            rest.append(w)
+        i += 1
+    return qty, grams, " ".join(rest)
+
+
+def _label_grams(label):
+    m = re.search(r"(\d+)\s*(?:g|ml)", label)
+    return float(m.group(1)) if m else None
+
+
 def estimate_local(name):
-    """Najde nejbližší jídlo ve vestavěné tabulce. Vrací dict nebo None."""
+    """Složí odhad z vestavěné tabulky – umí i více částí s množstvím
+    („mozzarella a 2 plátky chleba“, „300 ml kakaa a rohlík“). Vrací dict nebo None."""
     q = _norm(name)
     if not q:
         return None
-    keys = list(_NORM_INDEX)
-    hit = None
-    if q in _NORM_INDEX:
-        hit = q
-    else:
-        # jídlo obsažené v dotazu („velká pizza salámová“ -> „pizza salámová“) – nejdelší shoda
-        contained = [k for k in keys if k in q or q in k]
-        if contained:
-            hit = max(contained, key=len)
-        else:
-            close = difflib.get_close_matches(q, keys, n=1, cutoff=0.6)
-            hit = close[0] if close else None
-    if not hit:
+    whole = _match_one(q)
+    parts = [p for p in _SPLIT_RE.split(" " + q + " ") if p.strip()]
+    q_qty, q_grams, _ = _parse_part(q)
+    if whole and (_norm(whole) == q or (len(parts) <= 1 and q_qty is None and q_grams is None)):
+        c, f, p, label = FOODS[whole]
+        return {"carbs": c, "fat": f, "protein": p, "portion_label": label,
+                "note": f"Odhad z vestavěné tabulky (podle „{whole}“).", "source": "table"}
+    tot = [0.0, 0.0, 0.0]
+    used, short, unknown = [], [], []
+    for part in parts:
+        qty, grams, core = _parse_part(part)
+        key = _match_one(core) or _match_one(part)
+        if not key:
+            unknown.append(part.strip())
+            continue
+        c, f, p, label = FOODS[key]
+        mult = 1.0
+        if grams and _label_grams(label):
+            mult = grams / _label_grams(label)
+        elif qty:
+            m = re.match(r"(\d+)\s*(?!g\b|ml\b|cm\b)[a-zá-ž]", label)   # porce už je „2 ks“ -> 2 kusy = 1 porce
+            per_portion = float(m.group(1)) if m and float(m.group(1)) <= 10 else 1.0
+            mult = qty / per_portion
+        for i, v in enumerate((c, f, p)):
+            tot[i] += v * mult
+        used.append((f"{mult:g}× " if mult != 1 else "") + key + f" ({label})")
+        short.append((f"{mult:g}× " if mult != 1 else "") + key)
+    if not used:
         return None
-    orig = _NORM_INDEX[hit]
-    c, f, p, label = FOODS[orig]
-    return {"carbs": c, "fat": f, "protein": p, "portion_label": label,
-            "note": f"Odhad z vestavěné tabulky (podle „{orig}“).", "source": "table"}
+    note = "Složeno z tabulky: " + ", ".join(used) + "."
+    if unknown:
+        note += " Neznám: " + ", ".join(unknown) + " – doplňte ručně."
+    return {"carbs": round(tot[0], 1), "fat": round(tot[1], 1), "protein": round(tot[2], 1),
+            "portion_label": "porce (" + " + ".join(short) + ")",
+            "note": note, "source": "table"}
 
 
 def estimate_claude(name, api_key, model=None, timeout=30):
