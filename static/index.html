@@ -93,6 +93,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:14px}
         <div class="stat">Aktivní inzulín<b id="iobNow">–</b></div>
       </div>
       <div class="muted" id="bgAge">načítám…</div>
+      <div class="row" style="margin-top:8px"><span class="muted">Pumpa ukazuje IOB:</span><input id="pumpIob" type="number" step="0.05" inputmode="decimal" placeholder="j." style="width:80px"><button class="sec small" type="button" onclick="saveIobCheck()">Uložit</button><span class="muted" id="iobCheckInfo"></span></div>
     </div>
     <div id="pendingLate"></div>
     <div class="card">
@@ -301,6 +302,11 @@ function renderPending(list, now){
 }
 async function logLate(eid){ const u = parseFloat($('late_'+eid).value||0); await api(`/meal_events/${eid}/dose`,{method:'POST',body:JSON.stringify({given_late:u})}); toast('Zapsáno'); refreshNow(); }
 async function skipLate(eid){ await api(`/meal_events/${eid}/dose`,{method:'POST',body:JSON.stringify({given_late:0})}); refreshNow(); }
+async function saveIobCheck(){
+  const v=parseFloat(($('pumpIob').value||'').replace(',','.')); if(isNaN(v)) return toast('Zadejte hodnotu z pumpy');
+  const r=await api('/iob_check',{method:'POST',body:JSON.stringify({pump_iob:v})});
+  $('pumpIob').value=''; $('iobCheckInfo').textContent=`uloženo (pumpa ${fmt1(r.pump_iob)} / aplikace ${fmt1(r.app_iob)} j., celkem ${r.n} měření)`; toast('Uloženo – díky, poslouží ke kalibraci');
+}
 async function addManualBolus(){ const u=parseFloat($('manualUnits').value); if(!(u>0)) return; await api('/boluses',{method:'POST',body:JSON.stringify({units:u,kind:'correction'})}); $('manualUnits').value=''; toast('Bolus zapsán'); refreshNow(); }
 
 // ---------- graf ----------
