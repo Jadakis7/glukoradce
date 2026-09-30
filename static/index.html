@@ -123,7 +123,8 @@ details summary{cursor:pointer;color:var(--accent);font-size:14px}
       <div class="card list" id="mealList" style="margin-top:10px"></div>
       <button class="sec" onclick="showNewMeal()">+ Nové jídlo</button>
       <div class="card" id="newMeal" style="display:none;margin-top:10px">
-        <label>Název</label><input id="nmName" placeholder="např. Pizza salámová">
+        <label>Název</label><input id="nmName" placeholder="např. Pizza salámová" onkeydown="if(event.key==='Enter'){event.preventDefault();estimateMeal();}">
+        <div class="row" style="margin-top:8px"><button class="sec small" type="button" onclick="estimateMeal()">✨ Odhadnout hodnoty</button><span class="muted grow" id="nmEstInfo"></span></div>
         <div class="grid3">
           <div><label>Sacharidy (g)</label><input id="nmCarbs" type="number" inputmode="decimal"></div>
           <div><label>Tuky (g)</label><input id="nmFat" type="number" inputmode="decimal"></div>
@@ -216,6 +217,12 @@ details summary{cursor:pointer;color:var(--accent);font-size:14px}
       <div class="row" style="margin-top:12px"><button class="sec small" onclick="tandemProbe()">Otestovat připojení</button><span class="muted" id="tdStatus"></span></div>
       <pre id="tdProbe" class="muted" style="white-space:pre-wrap;font-size:12px;display:none"></pre>
     </div>
+    <div class="card">
+      <strong>Odhad živin jídla (Claude)</strong>
+      <div class="muted">Volitelné. S API klíčem Anthropic (console.anthropic.com) odhadne Claude sacharidy, tuky a bílkoviny pro libovolné jídlo. Bez klíče se použije vestavěná tabulka běžných jídel.</div>
+      <div class="row" style="margin-top:10px"><span class="muted grow" id="sAiKeyState">API klíč: –</span><button class="sec small" type="button" onclick="changePassword('ai')">Změnit klíč</button></div>
+      <label>Model</label><input id="sAiModel" placeholder="claude-haiku-4-5">
+    </div>
     <div class="row"><button onclick="saveSettings()">Uložit nastavení</button><button class="sec" onclick="syncNow()">Stáhnout data teď</button></div>
     <div class="card" style="margin-top:12px">
       <strong>Import bolusů z pumpy (CSV z Tandem Source)</strong>
@@ -274,7 +281,8 @@ async function refreshNow(){
     $('bgNow').style.color = g ? (g.mmol < status.settings.hypo ? 'var(--red)' : g.mmol > status.settings.high ? 'var(--orange)' : 'var(--ink)') : 'var(--ink3)';
     $('bgArrow').textContent = status.trend_arrow || '';
     $('bgAge').textContent = g ? `před ${status.glucose_age_min} min · ${hhmm(g.ts)}` + (status.glucose_age_min>15?' · ⚠ stará hodnota':'') : 'zatím žádná data';
-    $('iobNow').textContent = fmt1(status.iob) + ' j.';
+    const pumpAge = status.pump_data_ts ? Math.round((status.now - status.pump_data_ts)/60) : null;
+    $('iobNow').textContent = fmt1(status.iob) + ' j.' + (pumpAge!=null && pumpAge>90 ? ` ⚠ data z pumpy ${pumpAge<180 ? pumpAge+' min' : Math.round(pumpAge/60)+' h'} stará` : '');
     $('rangeTxt').textContent = `${fmt1(status.settings.hypo)}–${fmt1(status.settings.high)}`;
     $('syncInfo').textContent = (status.last_sync ? 'Dexcom ' + hhmm(status.last_sync) : '') + (status.tandem_last_sync ? ' · Tandem ' + hhmm(status.tandem_last_sync) : '') + (status.tandem_error ? ' · ⚠ Tandem: ' + status.tandem_error : '');
     renderPending(status.pending_late, status.now);
@@ -342,7 +350,17 @@ function renderMeals(){
   }
   if(!el.innerHTML) el.innerHTML = '<div class="muted" style="padding:8px">Žádné jídlo. Přidejte první.</div>';
 }
-function showNewMeal(){ $('newMeal').style.display=''; $('nmName').focus(); }
+function showNewMeal(){ $('newMeal').style.display=''; $('nmEstInfo').textContent=''; $('nmName').focus(); }
+async function estimateMeal(){
+  const name = $('nmName').value.trim(); if(!name) return toast('Nejdřív napište název jídla');
+  $('nmEstInfo').textContent = 'Odhaduji…';
+  try{
+    const r = await api('/estimate',{method:'POST',body:JSON.stringify({name})});
+    if(r.error){ $('nmEstInfo').textContent = r.error; return; }
+    $('nmCarbs').value=r.carbs; $('nmFat').value=r.fat; $('nmProt').value=r.protein; if(!$('nmLabel').value) $('nmLabel').value=r.portion_label||'';
+    $('nmEstInfo').textContent = (r.source==='claude' ? 'Odhad Claude: ' : '') + (r.note||'') + ' Hodnoty můžete upravit.';
+  }catch(e){ $('nmEstInfo').textContent = 'Chyba: '+e.message; }
+}
 async function saveNewMeal(){
   const b = {name:$('nmName').value, carbs:$('nmCarbs').value, fat:$('nmFat').value, protein:$('nmProt').value, portion_label:$('nmLabel').value||'porce'};
   if(!b.name || !b.carbs) return toast('Zadejte název a sacharidy');
@@ -409,15 +427,16 @@ async function loadSettings(){
   $('sIcr').value=s.icr; $('sIsf').value=s.isf; $('sTarget').value=s.target; $('sDia').value=s.dia_h; $('sHypo').value=s.hypo; $('sHigh').value=s.high;
   $('sFpu').value=s.fpu_factor; $('sDelay').value=s.late_delay_min; $('sMaxB').value=s.max_bolus; $('sMaxC').value=s.max_correction; $('sStep').value=s.learn_step;
   $('sDxUser').value=s.dexcom.username||''; $('sDxPassState').textContent = s.dexcom.password ? 'Heslo: uloženo ✓' : 'Heslo: není nastaveno'; $('sDxRegion').value=s.dexcom.region||'ous';
+  $('sAiKeyState').textContent = (s.ai&&s.ai.api_key) ? 'API klíč: uložen ✓' : 'API klíč: není nastaven (používá se tabulka)'; $('sAiModel').value=(s.ai&&s.ai.model)||'claude-haiku-4-5';
   $('sTdUser').value=s.tandem.email||''; $('sTdPassState').textContent = s.tandem.password ? 'Heslo: uloženo ✓' : 'Heslo: není nastaveno'; $('sTdRegion').value=s.tandem.region||'EU';
   if(status) $('tdStatus').textContent = status.tandem_error ? 'Chyba: '+status.tandem_error : status.tandem_last_sync ? 'Poslední sync '+hhmm(status.tandem_last_sync) : '';
 }
 async function changePassword(which){
-  const label = which==='dexcom' ? 'Dexcom' : 'Tandem Source';
-  const pw = window.prompt('Zadejte heslo k účtu ' + label + ' (heslo se uloží jen na serveru):');
-  if(pw===null) return; if(!pw.trim()) return toast('Prázdné heslo – nic se nezměnilo');
-  const body = {}; body[which] = {password: pw};
-  await api('/settings',{method:'PUT',body:JSON.stringify(body)}); toast('Heslo uloženo'); loadSettings();
+  const label = which==='dexcom' ? 'Dexcom' : which==='tandem' ? 'Tandem Source' : 'Anthropic';
+  const pw = window.prompt(which==='ai' ? 'Vložte API klíč Anthropic (začíná sk-ant-…; uloží se jen na serveru):' : 'Zadejte heslo k účtu ' + label + ' (heslo se uloží jen na serveru):');
+  if(pw===null) return; if(!pw.trim()) return toast('Prázdné – nic se nezměnilo');
+  const body = {}; body[which] = which==='ai' ? {api_key: pw.trim()} : {password: pw};
+  await api('/settings',{method:'PUT',body:JSON.stringify(body)}); toast(which==='ai' ? 'Klíč uložen' : 'Heslo uloženo'); loadSettings();
 }
 async function tandemProbe(){
   await saveSettings();
@@ -443,7 +462,8 @@ async function saveSettings(){
   const b = {icr:$('sIcr').value, isf:$('sIsf').value, target:$('sTarget').value, dia_h:$('sDia').value, hypo:$('sHypo').value, high:$('sHigh').value,
     fpu_factor:$('sFpu').value, late_delay_min:$('sDelay').value, max_bolus:$('sMaxB').value, max_correction:$('sMaxC').value, learn_step:$('sStep').value,
     dexcom:{username:$('sDxUser').value, region:$('sDxRegion').value},
-    tandem:{email:$('sTdUser').value, region:$('sTdRegion').value}};
+    tandem:{email:$('sTdUser').value, region:$('sTdRegion').value},
+    ai:{model:$('sAiModel').value.trim()||'claude-haiku-4-5'}};
   await api('/settings',{method:'PUT',body:JSON.stringify(b)}); toast('Uloženo'); loadSettings();
 }
 async function restartServer(){ try{ await api('/restart',{method:'POST'}); }catch(e){} toast('Restartuji… stránka se za chvíli obnoví'); setTimeout(()=>location.reload(), 5000); }
